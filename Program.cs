@@ -9,6 +9,9 @@ builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 // Додаємо кастомний сервіс
 builder.Services.AddSingleton<UserService>();
+//Додаю сервіс працівника
+builder.Services.AddSingleton<WorkerService>();
+
 
 var app = builder.Build();
 
