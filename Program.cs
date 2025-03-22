@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ASPNetExapp;
 using ASPNetExapp.Services;
+using ASPNetExapp.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseMiddleware<ErrorHandlerMiddleware>();
+app.UseMiddleware<AuthMiddleware>();
+app.UseMiddleware<WorkerValidationMiddleware>();
 
 app.UseHttpsRedirection();
 app.MapControllers();
