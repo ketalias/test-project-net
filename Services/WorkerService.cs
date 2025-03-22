@@ -1,34 +1,38 @@
 using ASPNetExapp.Models;
-
+using Microsoft.EntityFrameworkCore;
 
 namespace ASPNetExapp.Services;
 
 public class WorkerService
 {
-    private readonly List<Worker> _workers = new(){
-        new Worker{Id = 1, LastName = "Ivanich",RoomNumber = 15, Department = "Backend", ComputerInfo= "Asus Vivobook" },
-        new Worker{Id = 2, LastName = "Fofich",RoomNumber = 15, Department = "Frontkend", ComputerInfo= "Asus Pro Vivobook" },
-        new Worker{Id = 3, LastName = "Bazzich",RoomNumber = 15, Department = "Ui", ComputerInfo= "Macbook" },
-        new Worker{Id = 4, LastName = "Gedich",RoomNumber = 15, Department = "Ux", ComputerInfo= "Asus Vivobook" },
+    private readonly AppDbContext _context;
 
-    };
-
-    public Worker? GetWorkerById(int id) => _workers.FirstOrDefault(u => u.Id == id);
-
-    public PaginatedResult<Worker> GetAllWorkers(string? query, int page, int pageSize)
+    public WorkerService(AppDbContext context)
     {
-        var filteredWorkers = _workers
-            .Where(w => string.IsNullOrEmpty(query) ||
-                        w.LastName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                        w.Department.Contains(query, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        _context = context;
+    }
 
-        var totalRecords = filteredWorkers.Count;
+    public async Task<Worker?> GetWorkerById(int id)
+    {
+        return await _context.Workers.FindAsync(id);
+    }
 
-        var workersPage = filteredWorkers
+    public async Task<PaginatedResult<Worker>> GetAllWorkers(string? query, int page, int pageSize)
+    {
+        var workersQuery = _context.Workers.AsQueryable();
+
+        if (!string.IsNullOrEmpty(query))
+        {
+            workersQuery = workersQuery.Where(w => 
+                EF.Functions.ILike(w.LastName, $"%{query}%") || 
+                EF.Functions.ILike(w.Department, $"%{query}%"));
+        }
+
+        var totalRecords = await workersQuery.CountAsync();
+        var workersPage = await workersQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToList();
+            .ToListAsync();
 
         return new PaginatedResult<Worker>
         {
@@ -36,32 +40,34 @@ public class WorkerService
             TotalRecords = totalRecords
         };
     }
-    
-    public void AddWorker(Worker worker)
+
+    public async Task AddWorker(Worker worker)
     {
-        worker.Id = _workers.Any() ? _workers.Max(w => w.Id) + 1 : 1;
-        _workers.Add(worker);
+        _context.Workers.Add(worker);
+        await _context.SaveChangesAsync();
     }
 
-    public bool UpdateWorker(int id, Worker updatedWorker)
+    public async Task<bool> UpdateWorker(int id, Worker updatedWorker)
     {
-        var worker = _workers.FirstOrDefault(w => w.Id == id);
+        var worker = await _context.Workers.FindAsync(id);
         if (worker == null) return false;
-        
+
         worker.LastName = updatedWorker.LastName;
         worker.RoomNumber = updatedWorker.RoomNumber;
         worker.Department = updatedWorker.Department;
         worker.ComputerInfo = updatedWorker.ComputerInfo;
-        
+
+        await _context.SaveChangesAsync();
         return true;
     }
 
-    public bool DeleteWorker(int id)
+    public async Task<bool> DeleteWorker(int id)
     {
-        var worker = _workers.FirstOrDefault(w => w.Id == id);
+        var worker = await _context.Workers.FindAsync(id);
         if (worker == null) return false;
-        
-        _workers.Remove(worker);
+
+        _context.Workers.Remove(worker);
+        await _context.SaveChangesAsync();
         return true;
     }
 }

@@ -1,10 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
 using ASPNetExapp.Models;
 using ASPNetExapp.Services;
+using Microsoft.AspNetCore.Mvc;
 
-namespace WorkersApi.Controllers;
+namespace ASPNetExapp.Controllers;
+
 [ApiController]
-[Route("api/workers")]
+[Route("api/[controller]")]
 public class WorkerController : ControllerBase
 {
     private readonly WorkerService _workerService;
@@ -15,44 +16,40 @@ public class WorkerController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<PaginatedResult<Worker>> GetWorkers(
-        [FromQuery] string? query,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 2)
+    public async Task<IActionResult> GetAll([FromQuery] string? query, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        return Ok(_workerService.GetAllWorkers(query, page, pageSize));
+        var result = await _workerService.GetAllWorkers(query, page, pageSize);
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
-    public ActionResult<Worker> GetWorkerById(int id)
+    public async Task<IActionResult> GetById(int id)
     {
-        var worker = _workerService.GetWorkerById(id);
-        return worker != null ? Ok(worker) : NotFound(new { message = "Worker not found" });
+        var worker = await _workerService.GetWorkerById(id);
+        if (worker == null) return NotFound();
+        return Ok(worker);
     }
 
     [HttpPost]
-    public ActionResult<Worker> CreateWorker([FromBody] Worker newWorker)
+    public async Task<IActionResult> Create([FromBody] Worker worker)
     {
-        _workerService.AddWorker(newWorker);
-        return CreatedAtAction(nameof(GetWorkerById), new { id = newWorker.Id }, newWorker);
+        await _workerService.AddWorker(worker);
+        return CreatedAtAction(nameof(GetById), new { id = worker.Id }, worker);
     }
 
-    [HttpPatch("{id}")]
-    public ActionResult UpdateWorker(int id, [FromBody] Worker updatedWorker)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] Worker updatedWorker)
     {
-        if (!_workerService.UpdateWorker(id, updatedWorker))
-            return NotFound(new { message = "Worker not found" });
-
+        var success = await _workerService.UpdateWorker(id, updatedWorker);
+        if (!success) return NotFound();
         return NoContent();
     }
 
     [HttpDelete("{id}")]
-    public ActionResult DeleteWorker(int id)
+    public async Task<IActionResult> Delete(int id)
     {
-        if (!_workerService.DeleteWorker(id))
-            return NotFound(new { message = "Worker not found" });
-
+        var success = await _workerService.DeleteWorker(id);
+        if (!success) return NotFound();
         return NoContent();
     }
 }
-

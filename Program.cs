@@ -1,21 +1,17 @@
+using Microsoft.EntityFrameworkCore;
+using ASPNetExapp;
 using ASPNetExapp.Services;
 
-// Створюємо екземпляр класу WebApplication, який дозволяє створювати веб-додатки ASP.NET Core
 var builder = WebApplication.CreateBuilder(args);
 
-// Додаємо підтримку контролерів
 builder.Services.AddControllers();
-// Додаємо підтримку Swagger
 builder.Services.AddSwaggerGen();
-// Додаємо кастомний сервіс
-builder.Services.AddSingleton<UserService>();
-//Додаю сервіс працівника
-builder.Services.AddSingleton<WorkerService>();
-
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<WorkerService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -23,6 +19,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.MapControllers(); // Важливо для роботи контролерів! Це по суті налаштування маршрутизації
+app.MapControllers();
 
 app.Run();
